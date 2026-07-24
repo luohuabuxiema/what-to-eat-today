@@ -207,17 +207,16 @@ export default defineComponent({
         document.getElementById('wheelCanvas')
       ) as HTMLCanvasElement;
       if (h5Canvas && typeof h5Canvas.getContext === 'function') {
-        const dpr = window.devicePixelRatio || 2;
+        // uni-app H5 会自行根据 CSS 尺寸和 DPR 设置 canvas 的位图尺寸，
+        // 并包装 2D context，将绘制坐标转换为高分屏坐标。此处再次手动设置
+        // width / height 或 dpr transform，会造成坐标被二次缩放，圆心偏到右下角。
         this.canvasWidth = 300;
         this.canvasHeight = 300;
-        h5Canvas.width = this.canvasWidth * dpr;
-        h5Canvas.height = this.canvasHeight * dpr;
         const ctx = h5Canvas.getContext('2d');
         if (ctx) {
-          // H5 中 getContext 会复用同一个绘制上下文。页面 onShow、关闭弹窗等
-          // 场景会再次调用 initCanvas；若连续 scale，坐标系会不断放大，导致
-          // 转盘被裁切、圆心偏移。setTransform 会先重置矩阵，因此可安全重绘。
-          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          // getContext 会复用上下文；先重置自定义 transform，避免上一轮残留。
+          // 不要在这里传 dpr：uni-app H5 已经自动处理了 DPR。
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
           this.canvasContext = ctx;
           this.drawWheel();
           return;
