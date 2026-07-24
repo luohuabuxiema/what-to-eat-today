@@ -12,17 +12,17 @@
     </view>
 
     <!-- 主转盘区域 -->
-    <view class="wheel-section" :style="{ pointerEvents: isSpinning || showResultModal ? 'none' : 'auto' }">
+    <view class="wheel-section" :style="{ pointerEvents: isSpinning || showResultModal || showPresetModal ? 'none' : 'auto' }">
       <!-- 轮盘旋转容器 (弹窗时通过 v-if 彻底隐藏原生组件防穿透) -->
       <view
-        v-if="!showResultModal"
+        v-if="!showResultModal && !showPresetModal"
         class="wheel-wrapper"
       >
         <canvas type="2d" id="wheelCanvas" canvas-id="wheelCanvas" class="wheel-canvas"></canvas>
       </view>
 
       <!-- 顶部固定指针 -->
-      <view class="pointer-wrapper" :style="{ opacity: showResultModal ? 0 : 1 }">
+      <view class="pointer-wrapper" :style="{ opacity: showResultModal || showPresetModal ? 0 : 1 }">
         <view class="pointer-arrow"></view>
       </view>
 
@@ -30,7 +30,7 @@
       <view
         class="center-btn"
         :class="{ 'btn-disabled': isSpinning || activeFoods.length === 0 }"
-        :style="{ opacity: showResultModal ? 0 : 1 }"
+        :style="{ opacity: showResultModal || showPresetModal ? 0 : 1 }"
         @tap="spinWheel"
       >
         <text class="btn-text">{{ isSpinning ? '抽取中' : 'START' }}</text>
@@ -39,7 +39,7 @@
     </view>
 
     <!-- 底部快捷操作栏 -->
-    <view class="action-bar" :style="{ pointerEvents: isSpinning || showResultModal ? 'none' : 'auto' }">
+    <view class="action-bar" :style="{ pointerEvents: isSpinning || showResultModal || showPresetModal ? 'none' : 'auto' }">
       <view class="action-btn" :class="{ 'btn-opacity': isSpinning }" @tap="shuffleFoods">
         <text class="action-icon">🔀</text>
         <text class="action-label">洗牌乱序</text>
@@ -86,12 +86,12 @@
       </view>
     </view>
 
-    <!-- 预设选择底栏弹窗 (解决微信小程序 ActionSheet 超过6项限制问题) -->
-    <view v-if="showPresetModal" class="preset-sheet-overlay" @tap="showPresetModal = false">
+    <!-- 预设选择底栏弹窗 (解决微信小程序 ActionSheet 超过6项限制与Canvas原生层穿透问题) -->
+    <view v-if="showPresetModal" class="preset-sheet-overlay" @tap="closePresetModal">
       <view class="preset-sheet-card" @tap.stop>
         <view class="sheet-header">
           <text class="sheet-title">📦 选择菜单预设包</text>
-          <text class="sheet-close" @tap="showPresetModal = false">✕</text>
+          <text class="sheet-close" @tap="closePresetModal">✕</text>
         </view>
         <view class="preset-list-scroll">
           <view
@@ -488,9 +488,14 @@ export default defineComponent({
       this.currentPresetId = preset.id;
       this.foods = applyPreset(preset.id);
       this.showPresetModal = false;
-      this.drawWheel();
+      setTimeout(() => { this.initCanvas(); }, 100);
       uni.showToast({ title: `已切换至【${preset.name}】`, icon: 'none' });
       uni.vibrateShort({ type: 'light' });
+    },
+
+    closePresetModal() {
+      this.showPresetModal = false;
+      setTimeout(() => { this.initCanvas(); }, 100);
     },
 
     confirmSelection() {
