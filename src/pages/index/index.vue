@@ -214,7 +214,10 @@ export default defineComponent({
         h5Canvas.height = this.canvasHeight * dpr;
         const ctx = h5Canvas.getContext('2d');
         if (ctx) {
-          ctx.scale(dpr, dpr);
+          // H5 中 getContext 会复用同一个绘制上下文。页面 onShow、关闭弹窗等
+          // 场景会再次调用 initCanvas；若连续 scale，坐标系会不断放大，导致
+          // 转盘被裁切、圆心偏移。setTransform 会先重置矩阵，因此可安全重绘。
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
           this.canvasContext = ctx;
           this.drawWheel();
           return;
