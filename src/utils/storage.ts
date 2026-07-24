@@ -117,17 +117,37 @@ export function clearStoredHistory(): void {
 }
 
 // 切换/应用场景预设包
+export function getStoredPresetId(): string {
+  try {
+    const id = uni.getStorageSync(STORAGE_KEYS.PRESET_ID);
+    if (id) return id;
+  } catch (e) {}
+  return 'auto';
+}
+
+export function saveStoredPresetId(presetId: string): void {
+  try {
+    uni.setStorageSync(STORAGE_KEYS.PRESET_ID, presetId);
+  } catch (e) {}
+}
+
+// 切换/应用场景预设包
 export function applyPreset(presetId: string): FoodItem[] {
+  saveStoredPresetId(presetId);
+  
+  let targetId = presetId;
+  if (presetId === 'auto') {
+    const hour = new Date().getHours();
+    targetId = hour >= 17 ? 'guangxi_dinner' : 'guangxi_lunch';
+  }
+  
   const presets = getStoredPresets();
-  const preset = presets.find(p => p.id === presetId) || presets[0];
+  const preset = presets.find(p => p.id === targetId) || presets[0];
   const newFoods: FoodItem[] = preset.foods.map((f, idx) => ({
     id: `food_${Date.now()}_${idx}`,
     ...f
   }));
   saveStoredFoods(newFoods);
-  try {
-    uni.setStorageSync(STORAGE_KEYS.PRESET_ID, presetId);
-  } catch (e) {}
   return newFoods;
 }
 

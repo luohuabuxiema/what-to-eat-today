@@ -93,13 +93,13 @@
             <text class="preset-card-icon">{{ preset.icon }}</text>
             <view class="preset-card-info">
               <text class="preset-card-title">{{ preset.name }}</text>
-              <text class="preset-card-count">{{ preset.foods.length }} 种美食</text>
+              <text class="preset-card-count">{{ preset.id === 'auto' ? '自动跟随时段' : preset.foods.length + ' 种美食' }}</text>
             </view>
           </view>
 
           <text class="preset-card-desc">{{ preset.desc }}</text>
 
-          <view class="preset-tags">
+          <view v-if="preset.id !== 'auto'" class="preset-tags">
             <view
               v-for="(food, idx) in visiblePresetFoods(preset)" 
               :key="idx" 
@@ -118,7 +118,7 @@
             </view>
           </view>
 
-          <button class="preset-add-btn" @tap="openAddFood('preset', preset.id)">+ 添加食物</button>
+          <button v-if="preset.id !== 'auto'" class="preset-add-btn" @tap="openAddFood('preset', preset.id)">+ 添加食物</button>
           <button class="preset-use-btn" @tap="applyPresetPackage(preset.id)">
             应用此预设 🎯
           </button>

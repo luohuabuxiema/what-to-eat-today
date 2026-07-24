@@ -91,7 +91,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { getStoredFoods, saveStoredFoods, addHistoryRecord, applyPreset } from '../../utils/storage';
+import { getStoredFoods, saveStoredFoods, addHistoryRecord, applyPreset, getStoredPresetId } from '../../utils/storage';
 import { PRESET_CATEGORIES, FUN_QUOTES, type FoodItem } from '../../utils/presetData';
 
 export default defineComponent({
@@ -103,8 +103,7 @@ export default defineComponent({
       selectedFood: null as FoodItem | null,
       showResultModal: false,
       resultQuote: '',
-      currentPresetId: 'default',
-      hasAutoSelectedMealPreset: false,
+      currentPresetId: 'auto',
       canvasContext: null as any,
       canvasWidth: 300,
       canvasHeight: 300,
@@ -123,10 +122,17 @@ export default defineComponent({
       return this.foods.filter(f => f.active !== false);
     },
     currentPresetName(): string {
+      if (this.currentPresetId === 'auto') {
+        const hour = new Date().getHours();
+        return hour >= 17 ? '智能推荐 (晚餐)' : '智能推荐 (午餐)';
+      }
       const p = PRESET_CATEGORIES.find(item => item.id === this.currentPresetId);
       return p ? p.name : '热门全能包';
     },
     currentPresetIcon(): string {
+      if (this.currentPresetId === 'auto') {
+        return '⏰';
+      }
       const p = PRESET_CATEGORIES.find(item => item.id === this.currentPresetId);
       return p ? p.icon : '🔥';
     }
@@ -136,8 +142,7 @@ export default defineComponent({
     setTimeout(() => { this.initCanvas(); }, 300);
   },
   onShow() {
-      this.loadData();
-    this.autoSelectMealPreset();
+    this.loadData();
     setTimeout(() => { this.initCanvas(); }, 300);
   },
   onUnload() {
@@ -150,27 +155,17 @@ export default defineComponent({
       if (this.spinAnimationTimer) { clearInterval(this.spinAnimationTimer); this.spinAnimationTimer = null; }
     },
 
-    // Canvas 从弹窗后重新挂载时，不能带着数千度的 CSS transform。
-    // 虽然角度等价，但微信原生 Canvas 会按超大旋转角重新计算包围盒，导致画布错位。
     normalizeRotationAngle() {
       this.rotationAngle = ((this.rotationAngle % 360) + 360) % 360;
     },
 
     loadData() {
-      this.foods = getStoredFoods();
-    },
-
-    // 首页启动时按用餐时段选预设：默认午餐，17:00 后切换为晚餐。
-    // 本次页面生命周期只执行一次，避免覆盖用户后来手动选择的菜单。
-    autoSelectMealPreset() {
-      if (this.hasAutoSelectedMealPreset) return;
-      this.hasAutoSelectedMealPreset = true;
-      const hour = new Date().getHours();
-      const presetId = hour >= 17 ? 'guangxi_dinner' : 'guangxi_lunch';
-      const preset = PRESET_CATEGORIES.find(item => item.id === presetId);
-      if (!preset) return;
-      this.currentPresetId = presetId;
-      this.foods = applyPreset(presetId);
+      this.currentPresetId = getStoredPresetId();
+      if (this.currentPresetId === 'auto') {
+        this.foods = applyPreset('auto');
+      } else {
+        this.foods = getStoredFoods();
+      }
     },
 
     initCanvas() {
@@ -456,7 +451,12 @@ export default defineComponent({
 
     showPresetPickerAction() {
       if (this.isSpinning || this.showResultModal) return;
-      const itemList = PRESET_CATEGORIES.map(p => `${p.icon} ${p.name}`);
+      const itemList = PRESET_CATEGORIES.map(p => {
+        if (p.id === 'auto') {
+          return `${p.icon} ${p.name} (自动跟随午晚餐)`;
+        }
+        return `${p.icon} ${p.name}`;
+      });
       uni.showActionSheet({
         itemList,
         success: (res) => {
@@ -465,7 +465,7 @@ export default defineComponent({
             this.currentPresetId = preset.id;
             this.foods = applyPreset(preset.id);
             this.drawWheel();
-            uni.showToast({ title: `已导入【${preset.name}】`, icon: 'none' });
+            uni.showToast({ title: `已切换至【${preset.name}】`, icon: 'none' });
           }
         }
       });

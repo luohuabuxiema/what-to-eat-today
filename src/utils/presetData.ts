@@ -17,6 +17,13 @@ export interface PresetCategory {
 
 export const PRESET_CATEGORIES: PresetCategory[] = [
   {
+    id: 'auto',
+    name: '智能时段推荐',
+    icon: '⏰',
+    desc: '根据当前系统时间，自动在午餐简餐与晚餐正餐小炒之间无缝切换。',
+    foods: []
+  },
+  {
     id: 'default',
     name: '热门全能包',
     icon: '🔥',
