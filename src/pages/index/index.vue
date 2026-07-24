@@ -86,6 +86,34 @@
       </view>
     </view>
 
+    <!-- 预设选择底栏弹窗 (解决微信小程序 ActionSheet 超过6项限制问题) -->
+    <view v-if="showPresetModal" class="preset-sheet-overlay" @tap="showPresetModal = false">
+      <view class="preset-sheet-card" @tap.stop>
+        <view class="sheet-header">
+          <text class="sheet-title">📦 选择菜单预设包</text>
+          <text class="sheet-close" @tap="showPresetModal = false">✕</text>
+        </view>
+        <view class="preset-list-scroll">
+          <view
+            v-for="p in presetCategories"
+            :key="p.id"
+            class="preset-item-card"
+            :class="{ active: currentPresetId === p.id }"
+            @tap="selectPreset(p)"
+          >
+            <text class="preset-item-icon">{{ p.icon }}</text>
+            <view class="preset-item-content">
+              <view class="preset-item-title-row">
+                <text class="preset-item-name">{{ p.name }}</text>
+                <text v-if="currentPresetId === p.id" class="preset-active-badge">当前生效</text>
+              </view>
+              <text class="preset-item-desc">{{ p.desc }}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
   </view>
 </template>
 
@@ -102,8 +130,10 @@ export default defineComponent({
       isSpinning: false,
       selectedFood: null as FoodItem | null,
       showResultModal: false,
+      showPresetModal: false,
       resultQuote: '',
       currentPresetId: 'auto',
+      presetCategories: PRESET_CATEGORIES,
       canvasContext: null as any,
       canvasWidth: 300,
       canvasHeight: 300,
@@ -446,29 +476,21 @@ export default defineComponent({
 
     showPresetPicker() {
       if (this.isSpinning || this.showResultModal) return;
-      this.showPresetPickerAction();
+      this.showPresetModal = true;
     },
 
     showPresetPickerAction() {
       if (this.isSpinning || this.showResultModal) return;
-      const itemList = PRESET_CATEGORIES.map(p => {
-        if (p.id === 'auto') {
-          return `${p.icon} ${p.name} (自动跟随午晚餐)`;
-        }
-        return `${p.icon} ${p.name}`;
-      });
-      uni.showActionSheet({
-        itemList,
-        success: (res) => {
-          const preset = PRESET_CATEGORIES[res.tapIndex];
-          if (preset) {
-            this.currentPresetId = preset.id;
-            this.foods = applyPreset(preset.id);
-            this.drawWheel();
-            uni.showToast({ title: `已切换至【${preset.name}】`, icon: 'none' });
-          }
-        }
-      });
+      this.showPresetModal = true;
+    },
+
+    selectPreset(preset: PresetCategory) {
+      this.currentPresetId = preset.id;
+      this.foods = applyPreset(preset.id);
+      this.showPresetModal = false;
+      this.drawWheel();
+      uni.showToast({ title: `已切换至【${preset.name}】`, icon: 'none' });
+      uni.vibrateShort({ type: 'light' });
     },
 
     confirmSelection() {
@@ -756,5 +778,102 @@ export default defineComponent({
 .modal-btn.retry {
   background: #E5E5EA;
   color: #1C1C1E;
+}
+
+/* ===== 预设选择底栏弹窗 ===== */
+.preset-sheet-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
+  z-index: 99999;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+}
+.preset-sheet-card {
+  width: 100%;
+  background: #FFFFFF;
+  border-radius: 24px 24px 0 0;
+  padding: 20px 16px 30px 16px;
+  max-height: 75vh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+.sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 0 4px;
+}
+.sheet-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #1C1C1E;
+}
+.sheet-close {
+  font-size: 18px;
+  color: #8E8E93;
+  padding: 4px;
+}
+.preset-list-scroll {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 60vh;
+  padding-bottom: 10px;
+}
+.preset-item-card {
+  background: #F2F2F7;
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  align-items: flex-start;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+.preset-item-card.active {
+  background: #E5F1FF;
+  border-color: #007AFF;
+}
+.preset-item-icon {
+  font-size: 26px;
+  margin-right: 12px;
+  line-height: 1.2;
+}
+.preset-item-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.preset-item-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.preset-item-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1C1C1E;
+}
+.preset-active-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #FFFFFF;
+  background: #007AFF;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.preset-item-desc {
+  font-size: 12px;
+  color: #636366;
+  line-height: 1.4;
 }
 </style>
