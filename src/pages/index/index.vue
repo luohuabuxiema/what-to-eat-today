@@ -199,6 +199,29 @@ export default defineComponent({
     },
 
     initCanvas() {
+      // #ifdef H5
+      const h5Canvas = (
+        document.querySelector('.wheel-canvas canvas') ||
+        document.querySelector('#wheelCanvas canvas') ||
+        document.querySelector('.wheel-canvas') ||
+        document.getElementById('wheelCanvas')
+      ) as HTMLCanvasElement;
+      if (h5Canvas && typeof h5Canvas.getContext === 'function') {
+        const dpr = window.devicePixelRatio || 2;
+        this.canvasWidth = 300;
+        this.canvasHeight = 300;
+        h5Canvas.width = this.canvasWidth * dpr;
+        h5Canvas.height = this.canvasHeight * dpr;
+        const ctx = h5Canvas.getContext('2d');
+        if (ctx) {
+          ctx.scale(dpr, dpr);
+          this.canvasContext = ctx;
+          this.drawWheel();
+          return;
+        }
+      }
+      // #endif
+
       const scope = (this as any).$scope || this;
       const query = uni.createSelectorQuery().in(scope);
       query.select('#wheelCanvas')
